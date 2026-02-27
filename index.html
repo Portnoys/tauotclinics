@@ -1,576 +1,536 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>הערכת הסטודנטית בלימודים הקליניים</title>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<style>
-  :root {
-    --primary: #1a3a5c;
-    --secondary: #2e6da4;
-    --accent: #c8973a;
-    --success: #2d7a4f;
-    --danger: #b03030;
-    --bg: #f5f3ef;
-    --card: #ffffff;
-    --border: #d4cfc8;
-    --text: #1c1c1c;
-    --muted: #6b6560;
-    --hover: #eef4fb;
-    --score-bg: #e8f0f8;
-    --score-active: #1a3a5c;
-    --score-text: #ffffff;
-    --fail-bg: #fde8e8;
-    --pass-bg: #e8f7ee;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>הערכת הסטודנטית בלימודים הקליניים</title>
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
-  body {
-    font-family: 'Heebo', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    direction: rtl;
-    min-height: 100vh;
-  }
+  <!-- Google Identity Services (OAuth token) -->
+  <script src="https://accounts.google.com/gsi/client"></script>
 
-  /* Header */
-  .header {
-    background: var(--primary);
-    color: white;
-    padding: 28px 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 4px solid var(--accent);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.3);
-  }
+  <style>
+    :root {
+      --primary: #1a3a5c;
+      --secondary: #2e6da4;
+      --accent: #c8973a;
+      --success: #2d7a4f;
+      --danger: #b03030;
+      --bg: #f5f3ef;
+      --card: #ffffff;
+      --border: #d4cfc8;
+      --text: #1c1c1c;
+      --muted: #6b6560;
+      --hover: #eef4fb;
+      --score-bg: #e8f0f8;
+      --score-active: #1a3a5c;
+      --score-text: #ffffff;
+      --fail-bg: #fde8e8;
+      --pass-bg: #e8f7ee;
+    }
 
-  .header-title { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
-  .header-subtitle { font-size: 12px; opacity: 0.7; margin-top: 3px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .header-logo {
-    width: 52px; height: 52px;
-    background: var(--accent);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; font-weight: 800; color: white;
-  }
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      direction: rtl;
+      min-height: 100vh;
+    }
 
+    /* Header */
+    .header {
+      background: var(--primary);
+      color: white;
+      padding: 28px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 4px solid var(--accent);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+    }
 
+    .header-title { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+    .header-subtitle { font-size: 12px; opacity: 0.7; margin-top: 3px; }
 
-  /* Progress */
-  .progress-bar {
-    background: rgba(255,255,255,0.2);
-    height: 4px;
-    position: absolute;
-    bottom: 0; right: 0; left: 0;
-  }
-  .progress-fill {
-    background: var(--accent);
-    height: 100%;
-    width: 0%;
-    transition: width 0.5s ease;
-  }
+    .header-logo {
+      width: 52px; height: 52px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; color: white;
+    }
 
-  /* Main layout */
-  .container {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 32px 20px 80px;
-  }
+    /* Progress */
+    .progress-bar {
+      background: rgba(255,255,255,0.2);
+      height: 4px;
+      position: absolute;
+      bottom: 0; right: 0; left: 0;
+    }
+    .progress-fill {
+      background: var(--accent);
+      height: 100%;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
 
-  /* Cards */
-  .card {
-    background: var(--card);
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    margin-bottom: 24px;
-    overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    transition: box-shadow 0.2s;
-  }
-  .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    /* Main layout */
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
 
-  .card-header {
-    background: var(--primary);
-    color: white;
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+    /* Cards */
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      margin-bottom: 24px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
 
-  .card-header.section-b { background: #1e5080; }
-  .card-header.section-c { background: #1d5538; }
-  .card-header.section-d { background: #5c3a1a; }
-  .card-header.section-summary { background: #3a1a5c; }
+    .card-header {
+      background: var(--primary);
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-  .card-header-num {
-    width: 36px; height: 36px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; font-weight: 800;
-    flex-shrink: 0;
-  }
+    .card-header.section-b { background: #1e5080; }
+    .card-header.section-c { background: #1d5538; }
+    .card-header.section-d { background: #5c3a1a; }
+    .card-header.section-summary { background: #3a1a5c; }
 
-  .card-header-title { font-size: 17px; font-weight: 700; }
-  .card-header-subtitle { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+    .card-header-num {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800;
+      flex-shrink: 0;
+    }
 
-  .card-body { padding: 24px; }
+    .card-header-title { font-size: 17px; font-weight: 700; }
+    .card-header-subtitle { font-size: 12px; opacity: 0.75; margin-top: 2px; }
 
-  /* Info notice */
-  .info-box {
-    background: #fffbf0;
-    border: 1px solid #e8d48a;
-    border-radius: 10px;
-    padding: 14px 18px;
-    margin-bottom: 20px;
-    font-size: 13px;
-    color: #6b5a1c;
-    line-height: 1.6;
-  }
+    .card-body { padding: 24px; }
 
-  /* Form fields */
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
-  .form-grid.full { grid-template-columns: 1fr; }
+    /* Info notice */
+    .info-box {
+      background: #fffbf0;
+      border: 1px solid #e8d48a;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #6b5a1c;
+      line-height: 1.6;
+    }
 
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
-  .field input, .field select, .field textarea {
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 14px;
-    color: var(--text);
-    background: white;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    width: 100%;
-    direction: rtl;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus {
-    outline: none;
-    border-color: var(--secondary);
-    box-shadow: 0 0 0 3px rgba(46,109,164,0.12);
-  }
-  .field textarea { min-height: 80px; resize: vertical; }
+    /* Form fields */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.full { grid-template-columns: 1fr; }
 
-  /* Pass/Fail selectors */
-  .pass-fail-row {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    border-radius: 10px;
-    margin-bottom: 8px;
-    border: 1.5px solid var(--border);
-    background: white;
-    gap: 16px;
-    transition: background 0.2s;
-  }
-  .pass-fail-row:last-child { margin-bottom: 0; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .field input, .field select, .field textarea {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: white;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+      direction: rtl;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none;
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 3px rgba(46,109,164,0.12);
+    }
+    .field textarea { min-height: 80px; resize: vertical; }
 
-  .pass-fail-text {
-    flex: 1;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-  .pass-fail-num {
-    font-weight: 700;
-    color: var(--secondary);
-    margin-left: 6px;
-  }
+    /* Pass/Fail selectors */
+    .pass-fail-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border: 1.5px solid var(--border);
+      background: white;
+      gap: 16px;
+      transition: background 0.2s;
+    }
+    .pass-fail-row:last-child { margin-bottom: 0; }
 
-  .pass-fail-controls {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-  }
+    .pass-fail-text {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .pass-fail-num {
+      font-weight: 700;
+      color: var(--secondary);
+      margin-left: 6px;
+    }
 
-  .pf-btn {
-    padding: 6px 16px;
-    border-radius: 20px;
-    border: 2px solid transparent;
-    font-family: 'Heebo', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    background: #f0f0f0;
-    color: #666;
-  }
-  .pf-btn.pass { border-color: #b8e0c8; }
-  .pf-btn.pass:hover { background: var(--pass-bg); color: var(--success); }
-  .pf-btn.pass.active { background: var(--success); color: white; border-color: var(--success); }
-  .pf-btn.fail { border-color: #f0c0c0; }
-  .pf-btn.fail:hover { background: var(--fail-bg); color: var(--danger); }
-  .pf-btn.fail.active { background: var(--danger); color: white; border-color: var(--danger); }
+    .pass-fail-controls {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
 
-  .fail-alert {
-    background: var(--fail-bg);
-    border: 1px solid #e8a0a0;
-    border-radius: 8px;
-    padding: 10px 16px;
-    margin-top: 8px;
-    font-size: 13px;
-    color: var(--danger);
-    font-weight: 600;
-    display: none;
-  }
-  .fail-alert.show { display: block; }
+    .pf-btn {
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 2px solid transparent;
+      font-family: 'Heebo', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: #f0f0f0;
+      color: #666;
+    }
+    .pf-btn.pass { border-color: #b8e0c8; }
+    .pf-btn.pass:hover { background: var(--pass-bg); color: var(--success); }
+    .pf-btn.pass.active { background: var(--success); color: white; border-color: var(--success); }
+    .pf-btn.fail { border-color: #f0c0c0; }
+    .pf-btn.fail:hover { background: var(--fail-bg); color: var(--danger); }
+    .pf-btn.fail.active { background: var(--danger); color: white; border-color: var(--danger); }
 
-  .fail-banner {
-    background: #b03030;
-    color: white;
-    border-radius: 10px;
-    padding: 14px 20px;
-    text-align: center;
-    font-size: 15px;
-    font-weight: 700;
-    margin: 12px 0;
-    display: none;
-  }
-  .fail-banner.show { display: block; }
+    .fail-alert {
+      background: var(--fail-bg);
+      border: 1px solid #e8a0a0;
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--danger);
+      font-weight: 600;
+      display: none;
+    }
+    .fail-alert.show { display: block; }
 
-  /* Score table */
-  .score-section-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #e8eef5;
-  }
+    .fail-banner {
+      background: #b03030;
+      color: white;
+      border-radius: 10px;
+      padding: 14px 20px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      margin: 12px 0;
+      display: none;
+    }
+    .fail-banner.show { display: block; }
 
-  .score-legend {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-    padding: 12px 16px;
-    background: #f0f4f8;
-    border-radius: 10px;
-    align-items: center;
-  }
-  .legend-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-left: 6px; }
-  .score-chip {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 700;
-    background: var(--score-bg);
-    color: var(--primary);
-    cursor: default;
-  }
-  .score-chip.bad { background: #fde8e8; color: #b03030; }
-  .score-chip.borderline { background: #fff3cd; color: #856404; }
-  .score-chip.good { background: #d4edda; color: #155724; }
-  .score-chip.excellent { background: #cce5ff; color: #004085; }
-  .score-chip.na { background: #e2e3e5; color: #555; }
+    /* Score table */
+    .score-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e8eef5;
+    }
 
-  /* Score rows — two-line layout: text on top, buttons on bottom */
-  .score-row {
-    display: flex;
-    flex-direction: column;
-    padding: 10px 14px;
-    border-radius: 10px;
-    margin-bottom: 8px;
-    border: 1.5px solid var(--border);
-    background: white;
-    gap: 8px;
-    transition: background 0.2s;
-  }
-  .score-row.improvement-item { border-color: #f0e0a0; background: #fffef5; }
+    .score-legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: #f0f4f8;
+      border-radius: 10px;
+      align-items: center;
+    }
+    .legend-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-left: 6px; }
+    .score-chip {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--score-bg);
+      color: var(--primary);
+      cursor: default;
+    }
+    .score-chip.bad { background: #fde8e8; color: #b03030; }
+    .score-chip.borderline { background: #fff3cd; color: #856404; }
+    .score-chip.good { background: #d4edda; color: #155724; }
+    .score-chip.excellent { background: #cce5ff; color: #004085; }
+    .score-chip.na { background: #e2e3e5; color: #555; }
 
-  .score-row-top {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-  }
+    /* Score rows — two-line layout: text on top, buttons on bottom */
+    .score-row {
+      display: flex;
+      flex-direction: column;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border: 1.5px solid var(--border);
+      background: white;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .score-row.improvement-item { border-color: #f0e0a0; background: #fffef5; }
 
-  .score-row-text {
-    flex: 1;
-    font-size: 13.5px;
-    line-height: 1.5;
-  }
-  .score-row-num {
-    font-weight: 700;
-    color: var(--secondary);
-    font-size: 12px;
-    flex-shrink: 0;
-    min-width: 20px;
-  }
+    .score-row-top {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
 
-  /* Buttons always in a single row using grid */
-  .score-buttons {
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    gap: 4px;
-    width: 100%;
-  }
+    .score-row-text {
+      flex: 1;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+    .score-row-num {
+      font-weight: 700;
+      color: var(--secondary);
+      font-size: 12px;
+      flex-shrink: 0;
+      min-width: 20px;
+    }
 
-  .score-btn {
-    height: 36px;
-    width: 100%;
-    border-radius: 7px;
-    border: 1.5px solid var(--border);
-    font-family: 'Heebo', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
-    background: white;
-    color: var(--text);
-    white-space: nowrap;
-    padding: 0 2px;
-  }
-  .score-btn:hover { background: var(--hover); border-color: var(--secondary); }
-  .score-btn.score-45 { font-size: 10px; }
-  .score-btn.score-99 { font-size: 9.5px; background: #f0f0f0; color: #888; }
-  .score-btn.active { background: var(--score-active); color: white; border-color: var(--score-active); }
-  .score-btn.active.low { background: var(--danger); border-color: var(--danger); }
-  .score-btn.active.borderline { background: #856404; border-color: #856404; }
-  .score-btn.active.na { background: #666; border-color: #666; }
+    /* Buttons always in a single row using grid */
+    .score-buttons {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 4px;
+      width: 100%;
+    }
 
-  .improvement-note {
-    font-size: 11.5px;
-    color: #856404;
-    background: #fff3cd;
-    border-radius: 6px;
-    padding: 4px 8px;
-    margin-top: 4px;
-    display: none;
-  }
-  .improvement-note.show { display: block; }
+    .score-btn {
+      height: 36px;
+      width: 100%;
+      border-radius: 7px;
+      border: 1.5px solid var(--border);
+      font-family: 'Heebo', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: white;
+      color: var(--text);
+      white-space: nowrap;
+      padding: 0 2px;
+    }
+    .score-btn:hover { background: var(--hover); border-color: var(--secondary); }
+    .score-btn.score-45 { font-size: 10px; }
+    .score-btn.score-99 { font-size: 9.5px; background: #f0f0f0; color: #888; }
+    .score-btn.active { background: var(--score-active); color: white; border-color: var(--score-active); }
+    .score-btn.active.low { background: var(--danger); border-color: var(--danger); }
+    .score-btn.active.borderline { background: #856404; border-color: #856404; }
+    .score-btn.active.na { background: #666; border-color: #666; }
 
-  /* Section average */
-  .section-average {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px;
-    background: linear-gradient(135deg, #1a3a5c 0%, #2e6da4 100%);
-    border-radius: 10px;
-    color: white;
-    margin-top: 16px;
-  }
-  .section-average.section-b { background: linear-gradient(135deg, #1e5080 0%, #2e7db4 100%); }
-  .section-average.section-c { background: linear-gradient(135deg, #1d5538 0%, #2d7a4f 100%); }
-  .section-average.section-d { background: linear-gradient(135deg, #5c3a1a 0%, #8b5e2a 100%); }
+    .improvement-note {
+      font-size: 11.5px;
+      color: #856404;
+      background: #fff3cd;
+      border-radius: 6px;
+      padding: 4px 8px;
+      margin-top: 4px;
+      display: none;
+    }
+    .improvement-note.show { display: block; }
 
-  .avg-label { font-size: 14px; font-weight: 600; }
-  .avg-value {
-    font-size: 28px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .avg-value.fail-score { color: #ffaaaa; }
-  .avg-value small { font-size: 14px; font-weight: 400; opacity: 0.8; }
+    /* Section average */
+    .section-average {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, #1a3a5c 0%, #2e6da4 100%);
+      border-radius: 10px;
+      color: white;
+      margin-top: 16px;
+    }
+    .section-average.section-b { background: linear-gradient(135deg, #1e5080 0%, #2e7db4 100%); }
+    .section-average.section-c { background: linear-gradient(135deg, #1d5538 0%, #2d7a4f 100%); }
+    .section-average.section-d { background: linear-gradient(135deg, #5c3a1a 0%, #8b5e2a 100%); }
 
-  /* Comments area */
-  .comments-section {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1.5px dashed var(--border);
-  }
-  .comments-section label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--muted);
-    display: block;
-    margin-bottom: 8px;
-  }
+    .avg-label { font-size: 14px; font-weight: 600; }
+    .avg-value {
+      font-size: 28px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .avg-value.fail-score { color: #ffaaaa; }
+    .avg-value small { font-size: 14px; font-weight: 400; opacity: 0.8; }
 
-  /* Final summary */
-  .final-score-box {
-    background: linear-gradient(135deg, #1a3a5c 0%, #2e3a5c 100%);
-    border-radius: 14px;
-    padding: 28px;
-    color: white;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  .final-score-label { font-size: 16px; font-weight: 500; opacity: 0.85; margin-bottom: 8px; }
-  .final-score-value { font-size: 64px; font-weight: 800; line-height: 1; }
-  .final-score-value.pass { color: #7de89a; }
-  .final-score-value.fail { color: #ff8888; }
-  .final-score-status {
-    margin-top: 10px;
-    font-size: 18px;
-    font-weight: 700;
-    padding: 6px 20px;
-    border-radius: 20px;
-    display: inline-block;
-  }
-  .final-score-status.pass { background: rgba(125,232,154,0.2); color: #7de89a; }
-  .final-score-status.fail { background: rgba(255,136,136,0.2); color: #ff8888; }
+    /* Comments area */
+    .comments-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1.5px dashed var(--border);
+    }
+    .comments-section label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 8px;
+    }
 
-  .breakdown-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin: 16px 0;
-  }
-  .breakdown-item {
-    background: rgba(255,255,255,0.1);
-    border-radius: 10px;
-    padding: 12px;
-    text-align: center;
-  }
-  .breakdown-item-label { font-size: 11px; opacity: 0.75; margin-bottom: 4px; }
-  .breakdown-item-value { font-size: 22px; font-weight: 800; }
+    /* Final summary */
+    .final-score-box {
+      background: linear-gradient(135deg, #1a3a5c 0%, #2e3a5c 100%);
+      border-radius: 14px;
+      padding: 28px;
+      color: white;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .final-score-label { font-size: 16px; font-weight: 500; opacity: 0.85; margin-bottom: 8px; }
+    .final-score-value { font-size: 64px; font-weight: 800; line-height: 1; }
+    .final-score-value.pass { color: #7de89a; }
+    .final-score-value.fail { color: #ff8888; }
+    .final-score-status {
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 6px 20px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    .final-score-status.pass { background: rgba(125,232,154,0.2); color: #7de89a; }
+    .final-score-status.fail { background: rgba(255,136,136,0.2); color: #ff8888; }
 
-  /* Submit button */
-  .submit-area {
-    padding: 28px;
-    background: white;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    text-align: center;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  }
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .breakdown-item {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+    .breakdown-item-label { font-size: 11px; opacity: 0.75; margin-bottom: 4px; }
+    .breakdown-item-value { font-size: 22px; font-weight: 800; }
 
-  .submit-btn {
-    background: linear-gradient(135deg, #1a3a5c, #2e6da4);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 16px 40px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 16px rgba(26,58,92,0.4);
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(26,58,92,0.5);
-  }
-  .submit-btn:active { transform: translateY(0); }
-  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    /* Submit button */
+    .submit-area {
+      padding: 28px;
+      background: white;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
 
-  .submit-note {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 10px;
-  }
+    .submit-btn {
+      background: linear-gradient(135deg, #1a3a5c, #2e6da4);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 40px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(26,58,92,0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(26,58,92,0.5);
+    }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-  /* Google Drive modal */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-    display: none;
-  }
-  .modal-overlay.show { display: flex; }
-  .modal {
-    background: white;
-    border-radius: 20px;
-    padding: 36px;
-    max-width: 480px;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  }
-  .modal-icon { font-size: 52px; margin-bottom: 16px; }
-  .modal-title { font-size: 22px; font-weight: 800; color: var(--primary); margin-bottom: 10px; }
-  .modal-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+    .submit-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.6;
+    }
 
-  .drive-note { display: none; }
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1a3a5c;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 9999;
+      max-width: 420px;
+      white-space: pre-line;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
 
-  .modal-buttons { display: flex; gap: 12px; justify-content: center; flex-direction: column; }
-  .modal-btn {
-    padding: 12px 28px;
-    border-radius: 10px;
-    border: none;
-    font-family: 'Heebo', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .modal-btn.primary { background: #4285f4; color: white; box-shadow: 0 3px 12px rgba(66,133,244,0.4); }
-  .modal-btn.primary:hover { background: #3367d6; transform: translateY(-1px); }
-  .modal-btn.secondary { background: white; color: var(--text); border: 1.5px solid var(--border); }
-  .modal-btn.secondary:hover { background: var(--bg); }
-  .modal-btn.download { background: linear-gradient(135deg, var(--success), #3a9e6a); color: white; box-shadow: 0 3px 12px rgba(45,122,79,0.4); }
+    /* Spinner */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #1a3a5c;
-    color: white;
-    padding: 14px 20px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    transform: translateY(100px);
-    opacity: 0;
-    transition: all 0.3s;
-    z-index: 9999;
-    max-width: 350px;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { background: var(--success); }
-  .toast.error { background: var(--danger); }
-
-  /* Spinner */
-  .spinner {
-    width: 20px; height: 20px;
-    border: 3px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    display: inline-block;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  @media (max-width: 680px) {
-    .form-grid { grid-template-columns: 1fr; }
-    .form-grid.three { grid-template-columns: 1fr 1fr; }
-    .score-buttons { grid-template-columns: repeat(5, 1fr); }
-    .breakdown-grid { grid-template-columns: repeat(2, 1fr); }
-    .header { padding: 18px 20px; }
-    .card-body { padding: 16px; }
-  }
-</style>
+    @media (max-width: 680px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid.three { grid-template-columns: 1fr 1fr; }
+      .score-buttons { grid-template-columns: repeat(5, 1fr); }
+      .breakdown-grid { grid-template-columns: repeat(2, 1fr); }
+      .header { padding: 18px 20px; }
+      .card-body { padding: 16px; }
+    }
+  </style>
 </head>
+
 <body>
 
 <header class="header">
-  <div>
+  <div style="position:relative;">
     <div class="header-title">הערכת הסטודנטית בלימודים הקליניים</div>
-    <div class="header-subtitle">ריפוי בעיסוק — טופס הערכה מקצועי</div>
+    <div class="header-subtitle">ריפוי בעיסוק: טופס הערכה מקצועי</div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
   </div>
   <div class="header-logo">TAU</div>
 </header>
-</div>
 
 <div class="container">
 
@@ -660,6 +620,7 @@
           </select>
         </div>
       </div>
+
       <div style="margin-top: 20px; padding-top: 20px; border-top: 1.5px dashed var(--border);">
         <div class="form-grid">
           <div class="field">
@@ -690,6 +651,7 @@
           </div>
         </div>
       </div>
+
       <!-- Staff only fields -->
       <div style="margin-top: 20px; padding-top: 20px; border-top: 1.5px dashed var(--border);">
         <div style="font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 14px;">⭐ למילוי על-ידי צוות ההדרכה הקלינית</div>
@@ -853,34 +815,49 @@
 
   <!-- Submit -->
   <div class="submit-area">
-    <button class="submit-btn" id="submitBtn" onclick="handleSubmit()">
+    <button class="submit-btn" id="submitBtn" onclick="handleSubmitAuto()">
       <span>✓</span>
       אשרי ושלחי
     </button>
-    <div class="submit-note">הטופס יומר לקובץ Word וישלח לגוגל דרייב</div>
-  </div>
-
-</div>
-
-<!-- Modal -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-icon" id="modalIcon">📤</div>
-    <div class="modal-title" id="modalTitle">שליחה לגוגל דרייב</div>
-    <div class="modal-subtitle" id="modalSubtitle">הטופס יומר לקובץ Word ויישלח לתיקיית ריפוי בעיסוק</div>
-    <div class="modal-buttons" id="modalButtons">
-      <button class="modal-btn primary" onclick="sendToDrive()">📤 שלח לגוגל דרייב של tauotclinics</button>
-      <button class="modal-btn download" onclick="downloadDocx()">⬇ הורד כקובץ Word בלבד</button>
-      <button class="modal-btn secondary" onclick="closeModal()">ביטול</button>
+    <div class="submit-note">
+      בלחיצה אחת: הקובץ יירד למחשב + יועלה אוטומטית ל-Google Drive (לתיקייה שסיפקת).<br>
+      חשוב: כדי שהעלאה תעבוד, צריך להגדיר GOOGLE_CLIENT_ID (OAuth) ולהיות עם הרשאת עריכה לתיקייה.
     </div>
   </div>
+
 </div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-// =============== DATA ===============
+/**
+ * =============================
+ * 1) הגדרות DRIVE
+ * =============================
+ * התיקייה מהלינק שנתת:
+ * https://drive.google.com/drive/folders/1q4AAPIBPvcFs6Iy0ahivibCB-uIuoBZ3?usp=sharing
+ */
+const DRIVE_FOLDER_ID = '1q4AAPIBPvcFs6Iy0ahivibCB-uIuoBZ3';
+
+/**
+ * חובה: ליצור OAuth Client ID (Web) בגוגל קלאוד ולהדביק כאן:
+ * דוגמה: '1234567890-abc123def456.apps.googleusercontent.com'
+ */
+const GOOGLE_CLIENT_ID = 'PASTE_YOUR_OAUTH_WEB_CLIENT_ID_HERE.apps.googleusercontent.com';
+
+/**
+ * הערה חשובה:
+ * "לינק שיתוף" לא מבטיח הרשאת העלאה. כדי שהקובץ באמת יעלה לתיקייה—
+ * המשתמש שמתחבר ב-OAuth חייב להיות עם הרשאת "Editor" לתיקייה הזו.
+ */
+
+
+/**
+ * =============================
+ * DATA
+ * =============================
+ */
 const personalBehaviorItems = [
   'לוקחת אחריות על מעשיה תוך הכרת גבולות אישיים ומקצועיים',
   'מקבלת משוב ומשנה התנהגות בהתאם',
@@ -954,17 +931,19 @@ const SCORES = [
   { label: 'לא רלוונטי', value: 99, cls: 'score-99 na' }
 ];
 
-// State
 const state = {
   personalBehavior: new Array(6).fill(null),
   b1: new Array(sectionB1Items.length).fill(null),
   b2: new Array(sectionB2Items.length).fill(null),
   c: new Array(sectionCItems.length).fill(null),
   d: new Array(sectionDItems.length).fill(null),
-  improvementFlags: { b1: [], b2: [], c: [], d: [] }
 };
 
-// =============== RENDER ===============
+/**
+ * =============================
+ * RENDER
+ * =============================
+ */
 function renderPersonalBehavior() {
   const container = document.getElementById('personalBehaviorItems');
   container.innerHTML = personalBehaviorItems.map((item, i) => `
@@ -1022,7 +1001,7 @@ function renderScoreSection(containerId, items, sectionKey, sectionTitle, avgId,
         <div class="improvement-note" id="impNote_${sectionKey}_${i}">⚠ שימי לב שתהיה הלימה בין הציון לבין המשוב המילולי — סעיף זה הוגדר כנקודה לשיפור</div>
         <div class="score-buttons">
           ${SCORES.map(s => `
-            <button class="score-btn ${s.cls}" 
+            <button class="score-btn ${s.cls}"
               onclick="setScore('${sectionKey}', ${i}, ${s.value}, this)"
               title="${s.label}">${s.label}</button>
           `).join('')}
@@ -1042,20 +1021,15 @@ function renderScoreSection(containerId, items, sectionKey, sectionTitle, avgId,
 }
 
 function setScore(sectionKey, index, value, btn) {
-  // Map sectionKey to state
   const map = { b1: 'b1', b2: 'b2', c: 'c', d: 'd' };
   state[map[sectionKey]][index] = value;
 
-  // Update button visuals
   const row = document.getElementById(`scoreRow_${sectionKey}_${index}`);
   row.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 
-  // Improvement note for 4-5, 6, 7
   const note = document.getElementById(`impNote_${sectionKey}_${index}`);
   note.classList.toggle('show', value <= 7 && value !== 99);
-
-  // Update row styling
   row.classList.toggle('improvement-item', value <= 7 && value !== 99);
 
   updateAverages();
@@ -1065,7 +1039,7 @@ function setScore(sectionKey, index, value, btn) {
 function calcAvg(arr) {
   const valid = arr.filter(v => v !== null && v !== 99);
   if (valid.length === 0) return null;
-  return valid.reduce((a,b)=>a+b,0) / valid.length * 10; // scale to 0-100
+  return valid.reduce((a,b)=>a+b,0) / valid.length * 10; // 0-100
 }
 
 function formatAvg(v) {
@@ -1081,8 +1055,8 @@ function updateAverages() {
 
   document.getElementById('avg_b1').innerHTML = `${formatAvg(a1)}<small> / 100</small>`;
   document.getElementById('avg_b2').innerHTML = `${formatAvg(a2)}<small> / 100</small>`;
-  document.getElementById('avg_c').innerHTML = `${formatAvg(a3)}<small> / 100</small>`;
-  document.getElementById('avg_d').innerHTML = `${formatAvg(a4)}<small> / 100</small>`;
+  document.getElementById('avg_c').innerHTML  = `${formatAvg(a3)}<small> / 100</small>`;
+  document.getElementById('avg_d').innerHTML  = `${formatAvg(a4)}<small> / 100</small>`;
 
   document.getElementById('avg1').textContent = formatAvg(a1);
   document.getElementById('avg2').textContent = formatAvg(a2);
@@ -1111,15 +1085,17 @@ function updateAverages() {
   statusEl.textContent = passing ? '✓ עבר' : '✗ נכשל';
 }
 
-// =============== PROGRESS ===============
+/**
+ * =============================
+ * PROGRESS
+ * =============================
+ */
 function updateProgress() {
   let filled = 0, total = 0;
 
-  // Personal behavior
   total += 6;
   filled += state.personalBehavior.filter(v => v !== null).length;
 
-  // Scores
   [state.b1, state.b2, state.c, state.d].forEach(arr => {
     total += arr.length;
     filled += arr.filter(v => v !== null).length;
@@ -1129,55 +1105,50 @@ function updateProgress() {
   document.getElementById('progressFill').style.width = pct + '%';
 }
 
-// =============== VALIDATION ===============
+/**
+ * =============================
+ * VALIDATION
+ * =============================
+ */
 function validateForm() {
   const missing = [];
 
-  // Check personal behavior
   const unfilledPF = state.personalBehavior.map((v,i) => v === null ? i+1 : null).filter(v => v !== null);
   if (unfilledPF.length > 0) {
     missing.push(`סעיף א - התנהגות אישית: סעיפים ${unfilledPF.join(', ')} לא מולאו`);
   }
 
-  // If personal behavior has fail, no need to validate scores
   const anyPersonalFail = state.personalBehavior.includes('נכשל');
   if (anyPersonalFail) {
-    // Only check that comments are filled
     if (!document.getElementById('commentsA').value.trim()) {
       missing.push('סעיף א - יש למלא הערות ודוגמאות בעת כשלון');
     }
     return missing;
   }
 
-  // Check all score sections
   const sections = [
-    { arr: state.b1, name: 'ב.1 אבחון', key: 'b1' },
-    { arr: state.b2, name: 'ב.2 תכנון', key: 'b2' },
-    { arr: state.c,  name: 'ג - תקשורת', key: 'c' },
-    { arr: state.d,  name: 'ד - אישיות מקצועית', key: 'd' },
+    { arr: state.b1, name: 'ב.1 אבחון' },
+    { arr: state.b2, name: 'ב.2 תכנון' },
+    { arr: state.c,  name: 'ג - תקשורת' },
+    { arr: state.d,  name: 'ד - אישיות מקצועית' },
   ];
 
   sections.forEach(sec => {
     const unfilled = sec.arr.map((v,i) => v === null ? i+1 : null).filter(v => v !== null);
-    if (unfilled.length > 0) {
-      missing.push(`${sec.name}: סעיפים ${unfilled.join(', ')} לא מולאו`);
-    }
+    if (unfilled.length > 0) missing.push(`${sec.name}: סעיפים ${unfilled.join(', ')} לא מולאו`);
   });
 
-  // Check final summary
-  if (!document.getElementById('finalSummary').value.trim()) {
-    missing.push('סיכום מילולי — שדה ריק');
-  }
-
-  // Check student name
-  if (!document.getElementById('studentName').value.trim()) {
-    missing.push('שם הסטודנט/ית — שדה ריק');
-  }
+  if (!document.getElementById('finalSummary').value.trim()) missing.push('סיכום מילולי — שדה ריק');
+  if (!document.getElementById('studentName').value.trim()) missing.push('שם הסטודנט/ית — שדה ריק');
 
   return missing;
 }
 
-// =============== DOCX GENERATION (pure XML/ZIP) ===============
+/**
+ * =============================
+ * DOCX GENERATION (RTL/Right aligned enforced)
+ * =============================
+ */
 async function generateDocx() {
   const getVal = id => document.getElementById(id)?.value || '';
 
@@ -1192,39 +1163,69 @@ async function generateDocx() {
   const validAvgs = avgs.filter(v => v !== null);
   const finalScore = validAvgs.length ? (validAvgs.reduce((a,b)=>a+b,0) / validAvgs.length).toFixed(1) : '—';
 
-  // Build XML content
   function esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s || '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
   }
 
+  // IMPORTANT: enforce RTL + right alignment on paragraph level (w:bidi + w:jc right)
   function para(text, opts = {}) {
     const bold = opts.bold ? '<w:b/><w:bCs/>' : '';
     const size = opts.size || 22;
     const color = opts.color ? `<w:color w:val="${opts.color}"/>` : '';
     const heading = opts.heading || '';
     const pStyle = heading ? `<w:pStyle w:val="${heading}"/>` : '';
-    const spacing = opts.spacing ? `<w:spacing w:before="${opts.spacing.before||0}" w:after="${opts.spacing.after||120}"/>` : '<w:spacing w:after="100"/>';
-    return `<w:p><w:pPr>${pStyle}<w:jc w:val="right"/>${spacing}</w:pPr><w:r><w:rPr><w:rtl/>${bold}<w:sz w:val="${size}"/><w:szCs w:val="${size}"/>${color}<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;
+    const spacing = opts.spacing
+      ? `<w:spacing w:before="${opts.spacing.before||0}" w:after="${opts.spacing.after||120}"/>`
+      : '<w:spacing w:after="100"/>';
+
+    return `<w:p>
+      <w:pPr>
+        ${pStyle}
+        <w:bidi/>
+        <w:jc w:val="right"/>
+        ${spacing}
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rtl/>
+          ${bold}
+          <w:sz w:val="${size}"/><w:szCs w:val="${size}"/>
+          ${color}
+          <w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>
+        </w:rPr>
+        <w:t xml:space="preserve">${esc(text)}</w:t>
+      </w:r>
+    </w:p>`;
   }
 
   function twoRunPara(label, val, valColor) {
     const colorXml = valColor ? `<w:color w:val="${valColor}"/>` : '';
-    return `<w:p><w:pPr><w:jc w:val="right"/><w:spacing w:after="80"/></w:pPr>` +
-      `<w:r><w:rPr><w:rtl/><w:b/><w:bCs/><w:sz w:val="22"/><w:szCs w:val="22"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr><w:t xml:space="preserve">${esc(label)}: </w:t></w:r>` +
-      `<w:r><w:rPr><w:rtl/><w:sz w:val="22"/><w:szCs w:val="22"/>${colorXml}<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr><w:t>${esc(val || '—')}</w:t></w:r></w:p>`;
+    return `<w:p>
+      <w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:after="80"/></w:pPr>
+      <w:r>
+        <w:rPr><w:rtl/><w:b/><w:bCs/><w:sz w:val="22"/><w:szCs w:val="22"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr>
+        <w:t xml:space="preserve">${esc(label)}: </w:t>
+      </w:r>
+      <w:r>
+        <w:rPr><w:rtl/><w:sz w:val="22"/><w:szCs w:val="22"/>${colorXml}<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr>
+        <w:t>${esc(val || '—')}</w:t>
+      </w:r>
+    </w:p>`;
   }
 
   function h1(text) { return para(text, { heading: 'Heading1', bold: true, size: 28, spacing: { before: 240, after: 120 } }); }
   function h2(text) { return para(text, { heading: 'Heading2', bold: true, size: 24, spacing: { before: 200, after: 100 } }); }
-  function blank() { return '<w:p><w:pPr><w:spacing w:after="80"/></w:pPr></w:p>'; }
+  function blank() { return '<w:p><w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:after="80"/></w:pPr></w:p>'; }
 
   let body = '';
 
-  // Title
   body += h1('הערכת הסטודנטית בלימודים הקליניים');
   body += blank();
 
-  // Details
   body += h2('פרטי ההכשרה');
   body += twoRunPara('שם הסטודנט/ית', getVal('studentName'));
   body += twoRunPara('מקום ההכשרה', getVal('trainingPlace'));
@@ -1247,7 +1248,6 @@ async function generateDocx() {
   body += twoRunPara('קורס הדרכה', getVal('supervisorCourse'));
   body += blank();
 
-  // Section A
   body += h2('א. התנהגות אישית');
   personalBehaviorItems.forEach((item, i) => {
     const val = state.personalBehavior[i];
@@ -1257,61 +1257,49 @@ async function generateDocx() {
   body += para(`הערות: ${getVal('commentsA') || '—'}`);
   body += blank();
 
-  // Section B1
   body += h2('ב.1 אבחון — תהליך איתור הצרכים');
-  sectionB1Items.forEach((item, i) => {
-    body += para(`${i+1}. ${item}: ${scoreLabel(state.b1[i])}`);
-  });
+  sectionB1Items.forEach((item, i) => body += para(`${i+1}. ${item}: ${scoreLabel(state.b1[i])}`));
   body += para(`ממוצע: ${formatAvg(calcAvg(state.b1))} / 100`, { bold: true });
   const commB1 = getVal('comments_b1');
   if (commB1) body += para(`הערות: ${commB1}`);
   body += blank();
 
-  // Section B2
   body += h2('ב.2 תכנון הטיפול וביצועו');
-  sectionB2Items.forEach((item, i) => {
-    body += para(`${i+1}. ${item}: ${scoreLabel(state.b2[i])}`);
-  });
+  sectionB2Items.forEach((item, i) => body += para(`${i+1}. ${item}: ${scoreLabel(state.b2[i])}`));
   body += para(`ממוצע: ${formatAvg(calcAvg(state.b2))} / 100`, { bold: true });
   const commB2 = getVal('comments_b2');
   if (commB2) body += para(`הערות: ${commB2}`);
   body += blank();
 
-  // Section C
   body += h2('ג. כישורים כלליים בתקשורת');
-  sectionCItems.forEach((item, i) => {
-    body += para(`${i+1}. ${item}: ${scoreLabel(state.c[i])}`);
-  });
+  sectionCItems.forEach((item, i) => body += para(`${i+1}. ${item}: ${scoreLabel(state.c[i])}`));
   body += para(`ממוצע: ${formatAvg(calcAvg(state.c))} / 100`, { bold: true });
   const commC = getVal('comments_c');
   if (commC) body += para(`הערות: ${commC}`);
   body += blank();
 
-  // Section D
   body += h2('ד. גיבוש האישיות המקצועית');
-  sectionDItems.forEach((item, i) => {
-    body += para(`${i+1}. ${item}: ${scoreLabel(state.d[i])}`);
-  });
+  sectionDItems.forEach((item, i) => body += para(`${i+1}. ${item}: ${scoreLabel(state.d[i])}`));
   body += para(`ממוצע: ${formatAvg(calcAvg(state.d))} / 100`, { bold: true });
   const commD = getVal('comments_d');
   if (commD) body += para(`הערות: ${commD}`);
   body += blank();
 
-  // Summary
   body += h2('סיכום');
   body += para(getVal('finalSummary') || '—');
   body += blank();
 
-  // Final score
   const scoreColor = finalScore !== '—' && parseFloat(finalScore) >= 70 ? '007700' : 'CC0000';
-  body += `<w:p><w:pPr><w:jc w:val="right"/><w:spacing w:after="100"/></w:pPr>` +
-    `<w:r><w:rPr><w:rtl/><w:b/><w:bCs/><w:sz w:val="28"/><w:szCs w:val="28"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr><w:t xml:space="preserve">ציון סופי: </w:t></w:r>` +
-    `<w:r><w:rPr><w:rtl/><w:b/><w:bCs/><w:sz w:val="32"/><w:szCs w:val="32"/><w:color w:val="${scoreColor}"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr><w:t>${esc(finalScore)}</w:t></w:r></w:p>`;
+  body += `<w:p>
+    <w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:after="100"/></w:pPr>
+    <w:r><w:rPr><w:rtl/><w:b/><w:bCs/><w:sz w:val="28"/><w:szCs w:val="28"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr><w:t xml:space="preserve">ציון סופי: </w:t></w:r>
+    <w:r><w:rPr><w:rtl/><w:b/><w:bCs/><w:sz w:val="32"/><w:szCs w:val="32"/><w:color w:val="${scoreColor}"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr><w:t>${esc(finalScore)}</w:t></w:r>
+  </w:p>`;
   body += blank();
   body += twoRunPara('תאריך מילוי', getVal('evaluationDate'));
   body += twoRunPara('חתימה', getVal('signatureName'));
 
-  // Build document.xml
+  // IMPORTANT: sectPr must be the LAST element in w:body for best Word behavior
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -1324,12 +1312,12 @@ async function generateDocx() {
   xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
   mc:Ignorable="w14">
   <w:body>
+    ${body}
     <w:sectPr>
       <w:bidi/>
       <w:pgSz w:w="11906" w:h="16838"/>
       <w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/>
     </w:sectPr>
-    ${body}
   </w:body>
 </w:document>`;
 
@@ -1344,12 +1332,12 @@ async function generateDocx() {
   </w:docDefaults>
   <w:style w:type="paragraph" w:styleId="Heading1">
     <w:name w:val="heading 1"/>
-    <w:pPr><w:jc w:val="right"/><w:spacing w:before="240" w:after="120"/></w:pPr>
+    <w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:before="240" w:after="120"/></w:pPr>
     <w:rPr><w:b/><w:bCs/><w:sz w:val="32"/><w:szCs w:val="32"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl/></w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading2">
     <w:name w:val="heading 2"/>
-    <w:pPr><w:jc w:val="right"/><w:spacing w:before="200" w:after="100"/></w:pPr>
+    <w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:before="200" w:after="100"/></w:pPr>
     <w:rPr><w:b/><w:bCs/><w:sz w:val="26"/><w:szCs w:val="26"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl/></w:rPr>
   </w:style>
 </w:styles>`;
@@ -1380,7 +1368,6 @@ async function generateDocx() {
   <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
 </Types>`;
 
-  // Build ZIP using JSZip
   const zip = new JSZip();
   zip.file('[Content_Types].xml', contentTypesXml);
   zip.file('_rels/.rels', appRelsXml);
@@ -1389,66 +1376,17 @@ async function generateDocx() {
   zip.file('word/settings.xml', settingsXml);
   zip.file('word/_rels/document.xml.rels', relsXml);
 
-  return await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  return await zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  });
 }
 
-// =============== SUBMIT ===============
-function handleSubmit() {
-  // Run validation first
-  const errors = validateForm();
-  if (errors.length > 0) {
-    showValidationModal(errors);
-    return;
-  }
-  document.getElementById('modalOverlay').classList.add('show');
-}
-
-function showValidationModal(errors) {
-  document.getElementById('modalIcon').textContent = '⚠️';
-  document.getElementById('modalTitle').textContent = 'הטופס אינו מלא';
-  document.getElementById('modalSubtitle').innerHTML =
-    'יש למלא את כל השדות הבאים לפני שליחה:<br><br>' +
-    '<div style="text-align:right; background:#fff8f0; border-radius:8px; padding:12px; font-size:13px; line-height:2;">' +
-    errors.map(e => `❌ ${e}`).join('<br>') +
-    '</div>';
-  document.getElementById('modalButtons').innerHTML =
-    `<button class="modal-btn secondary" onclick="closeModal(); resetModal();">חזור למילוי</button>`;
-  document.getElementById('modalOverlay').classList.add('show');
-}
-
-function resetModal() {
-  document.getElementById('modalIcon').textContent = '📤';
-  document.getElementById('modalTitle').textContent = 'שליחה לגוגל דרייב';
-  document.getElementById('modalSubtitle').textContent = 'הטופס יומר לקובץ Word ויישלח לתיקיית ריפוי בעיסוק';
-  document.getElementById('modalButtons').innerHTML = `
-    <button class="modal-btn primary" onclick="sendToDrive()">📤 שלח לגוגל דרייב של tauotclinics</button>
-    <button class="modal-btn download" onclick="downloadDocx()">⬇ הורד כקובץ Word בלבד</button>
-    <button class="modal-btn secondary" onclick="closeModal()">ביטול</button>
-  `;
-}
-
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('show');
-}
-
-async function downloadDocx() {
-  const btn = event?.target;
-  const origText = btn?.innerHTML;
-  if (btn) { btn.innerHTML = '<span class="spinner"></span> מכין...'; btn.disabled = true; }
-  try {
-    const blob = await generateDocx();
-    const name = document.getElementById('studentName')?.value || 'הערכה';
-    triggerDownload(blob, `הערכת_סטודנט_${name}.docx`);
-    closeModal();
-    showToast('✓ הקובץ הורד בהצלחה!', 'success');
-  } catch(e) {
-    showToast('שגיאה ביצירת הקובץ: ' + e.message, 'error');
-    console.error(e);
-  } finally {
-    if (btn) { btn.innerHTML = origText; btn.disabled = false; }
-  }
-}
-
+/**
+ * =============================
+ * Download helper
+ * =============================
+ */
 function triggerDownload(blob, fileName) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1460,46 +1398,131 @@ function triggerDownload(blob, fileName) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-const DRIVE_FOLDER_ID = 'FOLDER_ID_HERE'; // ← החליפו עם ה-ID של התיקייה ב-Drive
+/**
+ * =============================
+ * REAL Google Drive upload (OAuth)
+ * =============================
+ */
+let driveAccessToken = null;
 
-async function sendToDrive() {
-  const btn = document.querySelector('#modalButtons .modal-btn.primary');
-  const origText = btn?.innerHTML;
-  if (btn) { btn.innerHTML = '<span class="spinner"></span> מכין...'; btn.disabled = true; }
+function getDriveAccessToken() {
+  return new Promise((resolve, reject) => {
+    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('PASTE_YOUR')) {
+      return reject(new Error('חסר GOOGLE_CLIENT_ID (OAuth). הדבק Client ID אמיתי בקוד.'));
+    }
+    if (driveAccessToken) return resolve(driveAccessToken);
+
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: (resp) => {
+        if (!resp || resp.error) return reject(new Error(resp?.error || 'No token'));
+        driveAccessToken = resp.access_token;
+        resolve(driveAccessToken);
+      },
+    });
+
+    // prompt:'' -> לא מכריח לבחור חשבון כל פעם; אם אין סשן/הרשאה, גוגל יפתח חלון.
+    tokenClient.requestAccessToken({ prompt: '' });
+  });
+}
+
+async function uploadDocxToDrive(blob, fileName, folderId) {
+  if (!folderId) throw new Error('חסר DRIVE_FOLDER_ID');
+
+  const accessToken = await getDriveAccessToken();
+
+  const metadata = {
+    name: fileName,
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    parents: [folderId],
+  };
+
+  const boundary = '-------314159265358979323846';
+  const delimiter = `\r\n--${boundary}\r\n`;
+  const closeDelim = `\r\n--${boundary}--`;
+
+  const arrayBuffer = await blob.arrayBuffer();
+  const docxBytes = new Uint8Array(arrayBuffer);
+
+  const bodyParts = [];
+  bodyParts.push(new TextEncoder().encode(
+    delimiter +
+    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+    JSON.stringify(metadata) +
+    delimiter +
+    'Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n' +
+    'Content-Transfer-Encoding: binary\r\n\r\n'
+  ));
+  bodyParts.push(docxBytes);
+  bodyParts.push(new TextEncoder().encode(closeDelim));
+
+  const multipartBody = new Blob(bodyParts, { type: `multipart/related; boundary=${boundary}` });
+
+  const url = 'https://www.googleapis.com/upload/drive/v3/files'
+    + '?uploadType=multipart'
+    + '&supportsAllDrives=true'
+    + '&fields=id,name,webViewLink';
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: multipartBody,
+  });
+
+  if (!res.ok) {
+    const t = await res.text().catch(()=> '');
+    // הרבה פעמים אם אין הרשאת עריכה לתיקייה—תקבל 403
+    throw new Error(`Drive upload failed (${res.status}). ${t}`);
+  }
+
+  return await res.json();
+}
+
+function openDriveFolder(folderId) {
+  const url = `https://drive.google.com/drive/folders/${folderId}`;
+  window.open(url, '_blank');
+}
+
+/**
+ * =============================
+ * Submit: download + upload + open folder
+ * =============================
+ */
+async function handleSubmitAuto() {
+  const errors = validateForm();
+  if (errors.length > 0) {
+    showToast('⚠️ הטופס אינו מלא:\n' + errors.map(e => '• ' + e).join('\n'), 'error');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> שולח...';
 
   try {
     const blob = await generateDocx();
-    const studentName = document.getElementById('studentName')?.value || 'הערכה';
+    const studentName = (document.getElementById('studentName')?.value || 'הערכה').trim();
     const dateStr = new Date().toLocaleDateString('he-IL').replace(/\//g, '-');
     const fileName = `הערכת_סטודנט_${studentName}_${dateStr}.docx`;
 
-    // Download the file
+    // 1) הורדה מקומית
     triggerDownload(blob, fileName);
 
-    // Open Drive
-    const driveFolderUrl = DRIVE_FOLDER_ID === 'FOLDER_ID_HERE'
-      ? 'https://drive.google.com/drive/u/0/my-drive?authuser=tauotclinics@gmail.com'
-      : `https://drive.google.com/drive/folders/${DRIVE_FOLDER_ID}?authuser=tauotclinics@gmail.com`;
+    // 2) העלאה לדרייב (אמיתי)
+    const uploaded = await uploadDocxToDrive(blob, fileName, DRIVE_FOLDER_ID);
 
-    setTimeout(() => { window.open(driveFolderUrl, '_blank'); }, 800);
+    // 3) פתיחה אוטומטית לתיקייה
+    openDriveFolder(DRIVE_FOLDER_ID);
 
-    // Show success state
-    document.getElementById('modalIcon').textContent = '✅';
-    document.getElementById('modalTitle').textContent = 'נשלח בהצלחה!';
-    document.getElementById('modalSubtitle').innerHTML = `
-      הקובץ <strong>${fileName}</strong> הורד למחשב.<br>
-      <strong>Google Drive של tauotclinics נפתח בחלון חדש</strong> — גררו אליו את הקובץ שהורד.
-    `;
-    document.getElementById('modalButtons').innerHTML = `
-      <a href="${driveFolderUrl}" target="_blank" class="modal-btn primary" style="text-decoration:none;display:inline-block;padding:12px 28px;">
-        📂 פתח שוב את Drive
-      </a>
-      <button class="modal-btn secondary" onclick="closeModal(); resetModal();">סגור</button>
-    `;
-  } catch(e) {
-    showToast('שגיאה: ' + e.message, 'error');
+    showToast(`✅ הועלה ל-Drive בהצלחה!\nשם קובץ: ${uploaded?.name || fileName}`, 'success');
+  } catch (e) {
     console.error(e);
-    if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+    showToast('❌ שגיאה בשליחה:\n' + (e?.message || e), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
   }
 }
 
@@ -1507,10 +1530,14 @@ function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove('show'), 3500);
+  setTimeout(() => t.classList.remove('show'), 4500);
 }
 
-// =============== INIT ===============
+/**
+ * =============================
+ * INIT
+ * =============================
+ */
 function init() {
   renderPersonalBehavior();
   const bContainer = document.getElementById('sectionBContent');
@@ -1521,8 +1548,8 @@ function init() {
   renderScoreSection('sectionDContent', sectionDItems, 'd', 'גיבוש האישיות המקצועית', 'avg_d', 'section-d');
   updateProgress();
 }
-
 init();
 </script>
+
 </body>
 </html>
