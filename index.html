@@ -8,9 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
-  <!-- Google Identity Services (OAuth token) -->
-  <script src="https://accounts.google.com/gsi/client"></script>
-
   <style>
     :root {
       --primary: #1a3a5c;
@@ -469,13 +466,6 @@
     .submit-btn:active { transform: translateY(0); }
     .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    .submit-note {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 10px;
-      line-height: 1.6;
-    }
-
     /* Toast */
     .toast {
       position: fixed;
@@ -522,7 +512,6 @@
 </head>
 
 <body>
-
 <header class="header">
   <div style="position:relative;">
     <div class="header-title">הערכת הסטודנטית בלימודים הקליניים</div>
@@ -817,12 +806,8 @@
   <div class="submit-area">
     <button class="submit-btn" id="submitBtn" onclick="handleSubmitAuto()">
       <span>✓</span>
-      אשרי ושלחי
+      אשרי ושמרי ל-Word
     </button>
-    <div class="submit-note">
-      בלחיצה אחת: הקובץ יירד למחשב + יועלה אוטומטית ל-Google Drive (לתיקייה שסיפקת).<br>
-      חשוב: כדי שהעלאה תעבוד, צריך להגדיר GOOGLE_CLIENT_ID (OAuth) ולהיות עם הרשאת עריכה לתיקייה.
-    </div>
   </div>
 
 </div>
@@ -831,28 +816,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/**
- * =============================
- * 1) הגדרות DRIVE
- * =============================
- * התיקייה מהלינק שנתת:
- * https://drive.google.com/drive/folders/1q4AAPIBPvcFs6Iy0ahivibCB-uIuoBZ3?usp=sharing
- */
-const DRIVE_FOLDER_ID = '1q4AAPIBPvcFs6Iy0ahivibCB-uIuoBZ3';
-
-/**
- * חובה: ליצור OAuth Client ID (Web) בגוגל קלאוד ולהדביק כאן:
- * דוגמה: '1234567890-abc123def456.apps.googleusercontent.com'
- */
-const GOOGLE_CLIENT_ID = 'PASTE_YOUR_OAUTH_WEB_CLIENT_ID_HERE.apps.googleusercontent.com';
-
-/**
- * הערה חשובה:
- * "לינק שיתוף" לא מבטיח הרשאת העלאה. כדי שהקובץ באמת יעלה לתיקייה—
- * המשתמש שמתחבר ב-OAuth חייב להיות עם הרשאת "Editor" לתיקייה הזו.
- */
-
-
 /**
  * =============================
  * DATA
@@ -952,8 +915,8 @@ function renderPersonalBehavior() {
         <span class="pass-fail-num">${i+1}.</span>${item}
       </div>
       <div class="pass-fail-controls">
-        <button class="pf-btn pass" onclick="setPersonalBehavior(${i}, 'עבר')">עבר</button>
-        <button class="pf-btn fail" onclick="setPersonalBehavior(${i}, 'נכשל')">נכשל</button>
+        <button type="button" class="pf-btn pass" onclick="setPersonalBehavior(${i}, 'עבר')">עבר</button>
+        <button type="button" class="pf-btn fail" onclick="setPersonalBehavior(${i}, 'נכשל')">נכשל</button>
       </div>
     </div>
     <div class="fail-alert" id="failAlert${i}">הסטודנט/ית נכשל/ה בהכשרה.</div>
@@ -976,6 +939,7 @@ function setPersonalBehavior(index, value) {
   }
   const anyFail = state.personalBehavior.includes('נכשל');
   document.getElementById('failBannerA').classList.toggle('show', anyFail);
+  updateAverages();
   updateProgress();
 }
 
@@ -1001,7 +965,7 @@ function renderScoreSection(containerId, items, sectionKey, sectionTitle, avgId,
         <div class="improvement-note" id="impNote_${sectionKey}_${i}">⚠ שימי לב שתהיה הלימה בין הציון לבין המשוב המילולי — סעיף זה הוגדר כנקודה לשיפור</div>
         <div class="score-buttons">
           ${SCORES.map(s => `
-            <button class="score-btn ${s.cls}"
+            <button type="button" class="score-btn ${s.cls}"
               onclick="setScore('${sectionKey}', ${i}, ${s.value}, this)"
               title="${s.label}">${s.label}</button>
           `).join('')}
@@ -1070,6 +1034,7 @@ function updateAverages() {
   if (avgs.length === 0) {
     finalEl.textContent = '—';
     statusEl.style.display = 'none';
+    finalEl.className = 'final-score-value';
     return;
   }
 
@@ -1146,244 +1111,6 @@ function validateForm() {
 
 /**
  * =============================
- * DOCX GENERATION (RTL/Right aligned enforced)
- * =============================
- */
-async function generateDocx() {
-  const getVal = id => document.getElementById(id)?.value || '';
-
-  const scoreLabel = v => {
-    if (v === null) return 'לא מולא';
-    if (v === 99) return 'לא רלוונטי';
-    return String(v === 4.5 ? '4-5' : v);
-  };
-  const pfLabel = v => v || 'לא מולא';
-
-  const avgs = [calcAvg(state.b1), calcAvg(state.b2), calcAvg(state.c), calcAvg(state.d)];
-  const validAvgs = avgs.filter(v => v !== null);
-  const finalScore = validAvgs.length ? (validAvgs.reduce((a,b)=>a+b,0) / validAvgs.length).toFixed(1) : '—';
-
-  function esc(s) {
-    return String(s || '')
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;');
-  }
-
-  // IMPORTANT: enforce RTL + right alignment on paragraph level (w:bidi + w:jc right)
-  function para(text, opts = {}) {
-    const bold = opts.bold ? '<w:b/><w:bCs/>' : '';
-    const size = opts.size || 22;
-    const color = opts.color ? `<w:color w:val="${opts.color}"/>` : '';
-    const heading = opts.heading || '';
-    const pStyle = heading ? `<w:pStyle w:val="${heading}"/>` : '';
-    const spacing = opts.spacing
-      ? `<w:spacing w:before="${opts.spacing.before||0}" w:after="${opts.spacing.after||120}"/>`
-      : '<w:spacing w:after="100"/>';
-
-    return `<w:p>
-      <w:pPr>
-        ${pStyle}
-        <w:bidi/>
-        <w:jc w:val="right"/>
-        ${spacing}
-      </w:pPr>
-      <w:r>
-        <w:rPr>
-          <w:rtl/>
-          ${bold}
-          <w:sz w:val="${size}"/><w:szCs w:val="${size}"/>
-          ${color}
-          <w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>
-        </w:rPr>
-        <w:t xml:space="preserve">${esc(text)}</w:t>
-      </w:r>
-    </w:p>`;
-  }
-
-  function twoRunPara(label, val, valColor) {
-    const colorXml = valColor ? `<w:color w:val="${valColor}"/>` : '';
-    return `<w:p>
-      <w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:after="80"/></w:pPr>
-      <w:r>
-        <w:rPr><w:rtl/><w:b/><w:bCs/><w:sz w:val="22"/><w:szCs w:val="22"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr>
-        <w:t xml:space="preserve">${esc(label)}: </w:t>
-      </w:r>
-      <w:r>
-        <w:rPr><w:rtl/><w:sz w:val="22"/><w:szCs w:val="22"/>${colorXml}<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr>
-        <w:t>${esc(val || '—')}</w:t>
-      </w:r>
-    </w:p>`;
-  }
-
-  function h1(text) { return para(text, { heading: 'Heading1', bold: true, size: 28, spacing: { before: 240, after: 120 } }); }
-  function h2(text) { return para(text, { heading: 'Heading2', bold: true, size: 24, spacing: { before: 200, after: 100 } }); }
-  function blank() { return '<w:p><w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:after="80"/></w:pPr></w:p>'; }
-
-  let body = '';
-
-  body += h1('הערכת הסטודנטית בלימודים הקליניים');
-  body += blank();
-
-  body += h2('פרטי ההכשרה');
-  body += twoRunPara('שם הסטודנט/ית', getVal('studentName'));
-  body += twoRunPara('מקום ההכשרה', getVal('trainingPlace'));
-  body += twoRunPara('תחום ההכשרה', getVal('trainingField'));
-  body += twoRunPara('מעסיק', getVal('employer'));
-  body += twoRunPara('הכשרה בשנה', getVal('trainingYear'));
-  body += twoRunPara('שנה"ל', getVal('academicYear'));
-  body += twoRunPara('מתאריך', getVal('dateFrom'));
-  body += twoRunPara('עד תאריך', getVal('dateTo'));
-  body += twoRunPara('ימי היעדרות', getVal('absenceDays'));
-  body += twoRunPara('סיבת היעדרות', getVal('absenceReason'));
-  body += twoRunPara('נושאים', getVal('topics'));
-  body += twoRunPara('קליניקה חוזרת', getVal('repeatClinic'));
-  body += blank();
-
-  body += h2('פרטי המדריך/ה');
-  body += twoRunPara('שם המדריך/ה', getVal('supervisorName'));
-  body += twoRunPara('ותק בהדרכה', getVal('supervisorExperience'));
-  body += twoRunPara('תואר', getVal('supervisorDegree'));
-  body += twoRunPara('קורס הדרכה', getVal('supervisorCourse'));
-  body += blank();
-
-  body += h2('א. התנהגות אישית');
-  personalBehaviorItems.forEach((item, i) => {
-    const val = state.personalBehavior[i];
-    const color = val === 'נכשל' ? 'CC0000' : (val === 'עבר' ? '007700' : '888888');
-    body += twoRunPara(`${i+1}. ${item}`, pfLabel(val), color);
-  });
-  body += para(`הערות: ${getVal('commentsA') || '—'}`);
-  body += blank();
-
-  body += h2('ב.1 אבחון — תהליך איתור הצרכים');
-  sectionB1Items.forEach((item, i) => body += para(`${i+1}. ${item}: ${scoreLabel(state.b1[i])}`));
-  body += para(`ממוצע: ${formatAvg(calcAvg(state.b1))} / 100`, { bold: true });
-  const commB1 = getVal('comments_b1');
-  if (commB1) body += para(`הערות: ${commB1}`);
-  body += blank();
-
-  body += h2('ב.2 תכנון הטיפול וביצועו');
-  sectionB2Items.forEach((item, i) => body += para(`${i+1}. ${item}: ${scoreLabel(state.b2[i])}`));
-  body += para(`ממוצע: ${formatAvg(calcAvg(state.b2))} / 100`, { bold: true });
-  const commB2 = getVal('comments_b2');
-  if (commB2) body += para(`הערות: ${commB2}`);
-  body += blank();
-
-  body += h2('ג. כישורים כלליים בתקשורת');
-  sectionCItems.forEach((item, i) => body += para(`${i+1}. ${item}: ${scoreLabel(state.c[i])}`));
-  body += para(`ממוצע: ${formatAvg(calcAvg(state.c))} / 100`, { bold: true });
-  const commC = getVal('comments_c');
-  if (commC) body += para(`הערות: ${commC}`);
-  body += blank();
-
-  body += h2('ד. גיבוש האישיות המקצועית');
-  sectionDItems.forEach((item, i) => body += para(`${i+1}. ${item}: ${scoreLabel(state.d[i])}`));
-  body += para(`ממוצע: ${formatAvg(calcAvg(state.d))} / 100`, { bold: true });
-  const commD = getVal('comments_d');
-  if (commD) body += para(`הערות: ${commD}`);
-  body += blank();
-
-  body += h2('סיכום');
-  body += para(getVal('finalSummary') || '—');
-  body += blank();
-
-  const scoreColor = finalScore !== '—' && parseFloat(finalScore) >= 70 ? '007700' : 'CC0000';
-  body += `<w:p>
-    <w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:after="100"/></w:pPr>
-    <w:r><w:rPr><w:rtl/><w:b/><w:bCs/><w:sz w:val="28"/><w:szCs w:val="28"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr><w:t xml:space="preserve">ציון סופי: </w:t></w:r>
-    <w:r><w:rPr><w:rtl/><w:b/><w:bCs/><w:sz w:val="32"/><w:szCs w:val="32"/><w:color w:val="${scoreColor}"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/></w:rPr><w:t>${esc(finalScore)}</w:t></w:r>
-  </w:p>`;
-  body += blank();
-  body += twoRunPara('תאריך מילוי', getVal('evaluationDate'));
-  body += twoRunPara('חתימה', getVal('signatureName'));
-
-  // IMPORTANT: sectPr must be the LAST element in w:body for best Word behavior
-  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
-  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:o="urn:schemas-microsoft-com:office:office"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
-  xmlns:v="urn:schemas-microsoft-com:vml"
-  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
-  mc:Ignorable="w14">
-  <w:body>
-    ${body}
-    <w:sectPr>
-      <w:bidi/>
-      <w:pgSz w:w="11906" w:h="16838"/>
-      <w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/>
-    </w:sectPr>
-  </w:body>
-</w:document>`;
-
-  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:docDefaults>
-    <w:rPrDefault><w:rPr>
-      <w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>
-      <w:sz w:val="22"/><w:szCs w:val="22"/>
-      <w:rtl/>
-    </w:rPr></w:rPrDefault>
-  </w:docDefaults>
-  <w:style w:type="paragraph" w:styleId="Heading1">
-    <w:name w:val="heading 1"/>
-    <w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:before="240" w:after="120"/></w:pPr>
-    <w:rPr><w:b/><w:bCs/><w:sz w:val="32"/><w:szCs w:val="32"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl/></w:rPr>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Heading2">
-    <w:name w:val="heading 2"/>
-    <w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:before="200" w:after="100"/></w:pPr>
-    <w:rPr><w:b/><w:bCs/><w:sz w:val="26"/><w:szCs w:val="26"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl/></w:rPr>
-  </w:style>
-</w:styles>`;
-
-  const settingsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:themeFontLang w:bidi="he-IL"/>
-  <w:bidi/>
-</w:settings>`;
-
-  const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
-</Relationships>`;
-
-  const appRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`;
-
-  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
-  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
-</Types>`;
-
-  const zip = new JSZip();
-  zip.file('[Content_Types].xml', contentTypesXml);
-  zip.file('_rels/.rels', appRelsXml);
-  zip.file('word/document.xml', documentXml);
-  zip.file('word/styles.xml', stylesXml);
-  zip.file('word/settings.xml', settingsXml);
-  zip.file('word/_rels/document.xml.rels', relsXml);
-
-  return await zip.generateAsync({
-    type: 'blob',
-    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  });
-}
-
-/**
- * =============================
  * Download helper
  * =============================
  */
@@ -1398,95 +1125,269 @@ function triggerDownload(blob, fileName) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-/**
- * =============================
- * REAL Google Drive upload (OAuth)
- * =============================
- */
-let driveAccessToken = null;
-
-function getDriveAccessToken() {
-  return new Promise((resolve, reject) => {
-    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('PASTE_YOUR')) {
-      return reject(new Error('חסר GOOGLE_CLIENT_ID (OAuth). הדבק Client ID אמיתי בקוד.'));
-    }
-    if (driveAccessToken) return resolve(driveAccessToken);
-
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/drive.file',
-      callback: (resp) => {
-        if (!resp || resp.error) return reject(new Error(resp?.error || 'No token'));
-        driveAccessToken = resp.access_token;
-        resolve(driveAccessToken);
-      },
-    });
-
-    // prompt:'' -> לא מכריח לבחור חשבון כל פעם; אם אין סשן/הרשאה, גוגל יפתח חלון.
-    tokenClient.requestAccessToken({ prompt: '' });
-  });
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4500);
 }
 
-async function uploadDocxToDrive(blob, fileName, folderId) {
-  if (!folderId) throw new Error('חסר DRIVE_FOLDER_ID');
+/**
+ * =============================
+ * DOCX (Styled) via AltChunk (MHT)
+ * =============================
+ * הערה חשובה:
+ * זה יוצר DOCX שערוך ב-Word, עם עיצוב "דומה לאתר" דרך HTML.
+ * Word מייבא את ה-HTML למסמך (AltChunk). לרוב העריכה עובדת מצוין,
+ * אבל לפעמים Word "מתרגם" CSS בצורה שונה ממנוע דפדפן.
+ */
+async function generateStyledDocxFromHtml() {
+  const getVal = id => document.getElementById(id)?.value || '';
 
-  const accessToken = await getDriveAccessToken();
-
-  const metadata = {
-    name: fileName,
-    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    parents: [folderId],
+  const scoreLabel = v => {
+    if (v === null) return 'לא מולא';
+    if (v === 99) return 'לא רלוונטי';
+    return String(v === 4.5 ? '4-5' : v);
   };
+  const pfLabel = v => v || 'לא מולא';
 
-  const boundary = '-------314159265358979323846';
-  const delimiter = `\r\n--${boundary}\r\n`;
-  const closeDelim = `\r\n--${boundary}--`;
+  const a1 = calcAvg(state.b1);
+  const a2 = calcAvg(state.b2);
+  const a3 = calcAvg(state.c);
+  const a4 = calcAvg(state.d);
+  const avgs = [a1, a2, a3, a4].filter(v => v !== null);
+  const finalAvg = avgs.length ? (avgs.reduce((x,y)=>x+y,0) / avgs.length) : null;
 
-  const arrayBuffer = await blob.arrayBuffer();
-  const docxBytes = new Uint8Array(arrayBuffer);
+  const anyPersonalFail = state.personalBehavior.includes('נכשל');
+  const passing = !anyPersonalFail && finalAvg !== null && finalAvg >= 70;
 
-  const bodyParts = [];
-  bodyParts.push(new TextEncoder().encode(
-    delimiter +
-    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-    JSON.stringify(metadata) +
-    delimiter +
-    'Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n' +
-    'Content-Transfer-Encoding: binary\r\n\r\n'
-  ));
-  bodyParts.push(docxBytes);
-  bodyParts.push(new TextEncoder().encode(closeDelim));
-
-  const multipartBody = new Blob(bodyParts, { type: `multipart/related; boundary=${boundary}` });
-
-  const url = 'https://www.googleapis.com/upload/drive/v3/files'
-    + '?uploadType=multipart'
-    + '&supportsAllDrives=true'
-    + '&fields=id,name,webViewLink';
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}` },
-    body: multipartBody,
-  });
-
-  if (!res.ok) {
-    const t = await res.text().catch(()=> '');
-    // הרבה פעמים אם אין הרשאת עריכה לתיקייה—תקבל 403
-    throw new Error(`Drive upload failed (${res.status}). ${t}`);
+  function esc(s) {
+    return String(s ?? '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
   }
 
-  return await res.json();
-}
+  // HTML "מעוצב כמו האתר" (בגבולות מה ש-Word אוהב לייבא)
+  const html = `<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial; direction: rtl; color: #1c1c1c; }
+  .header { background:#1a3a5c; color:white; padding:18px 22px; border-bottom:4px solid #c8973a; }
+  .title { font-size:20px; font-weight:700; }
+  .subtitle { font-size:12px; opacity:0.9; margin-top:4px; }
 
-function openDriveFolder(folderId) {
-  const url = `https://drive.google.com/drive/folders/${folderId}`;
-  window.open(url, '_blank');
+  .card { border:1px solid #d4cfc8; border-radius:12px; margin:14px 0; overflow:hidden; }
+  .cardHead { padding:10px 16px; color:white; font-weight:700; }
+  .cardBody { padding:14px 16px; }
+
+  .headA { background:#1a3a5c; }
+  .headB { background:#1e5080; }
+  .headC { background:#1d5538; }
+  .headD { background:#5c3a1a; }
+  .headS { background:#3a1a5c; }
+
+  table { width:100%; border-collapse:collapse; margin-top:8px; }
+  th, td { border:1px solid #e2ded8; padding:8px; vertical-align:top; font-size:12.5px; }
+  th { background:#f5f3ef; font-weight:700; }
+
+  .pillPass { display:inline-block; padding:2px 10px; border-radius:999px; background:#2d7a4f; color:white; font-weight:700; font-size:12px; }
+  .pillFail { display:inline-block; padding:2px 10px; border-radius:999px; background:#b03030; color:white; font-weight:700; font-size:12px; }
+
+  .note { background:#fffbf0; border:1px solid #e8d48a; padding:10px 12px; border-radius:10px; font-size:12.5px; color:#6b5a1c; }
+
+  .finalBox { background:#1a3a5c; color:white; padding:16px; border-radius:12px; text-align:center; margin-top:10px; }
+  .finalScore { font-size:40px; font-weight:800; line-height:1; margin:8px 0; color:${passing ? '#7de89a' : '#ff8888'}; }
+  .small { font-size:12px; opacity:0.9; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">הערכת הסטודנטית בלימודים הקליניים</div>
+  <div class="subtitle">ריפוי בעיסוק: טופס הערכה מקצועי</div>
+</div>
+
+<div class="card">
+  <div class="cardHead headA">פרטי ההכשרה ופרטי המדריך/ה</div>
+  <div class="cardBody">
+    <table>
+      <tr><th>שדה</th><th>ערך</th></tr>
+      <tr><td>שם הסטודנט/ית</td><td>${esc(getVal('studentName'))}</td></tr>
+      <tr><td>מקום ההכשרה</td><td>${esc(getVal('trainingPlace'))}</td></tr>
+      <tr><td>תחום ההכשרה</td><td>${esc(getVal('trainingField'))}</td></tr>
+      <tr><td>מעסיק</td><td>${esc(getVal('employer'))}</td></tr>
+      <tr><td>הכשרה בשנה</td><td>${esc(getVal('trainingYear'))}</td></tr>
+      <tr><td>שנה"ל</td><td>${esc(getVal('academicYear'))}</td></tr>
+      <tr><td>מתאריך</td><td>${esc(getVal('dateFrom'))}</td></tr>
+      <tr><td>עד תאריך</td><td>${esc(getVal('dateTo'))}</td></tr>
+      <tr><td>ימי העדרות</td><td>${esc(getVal('absenceDays'))}</td></tr>
+      <tr><td>סיבת היעדרות</td><td>${esc(getVal('absenceReason'))}</td></tr>
+      <tr><td>נושאים</td><td>${esc(getVal('topics'))}</td></tr>
+      <tr><td>קליניקה חוזרת</td><td>${esc(getVal('repeatClinic'))}</td></tr>
+      <tr><td>שם המדריך/ה</td><td>${esc(getVal('supervisorName'))}</td></tr>
+      <tr><td>ותק בהדרכה</td><td>${esc(getVal('supervisorExperience'))}</td></tr>
+      <tr><td>תואר</td><td>${esc(getVal('supervisorDegree'))}</td></tr>
+      <tr><td>קורס הדרכה</td><td>${esc(getVal('supervisorCourse'))}</td></tr>
+      <tr><td>היכן נעשה הקורס</td><td>${esc(getVal('coursePlace'))}</td></tr>
+      <tr><td>הערות (צוות הדרכה)</td><td>${esc(getVal('staffNotes'))}</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="cardHead headA">א. התנהגות אישית</div>
+  <div class="cardBody">
+    <div class="note">סטודנטית שלא עברה אחד מהסעיפים 1-6, לא עברה את כל ההתנסות הקלינית.</div>
+    <table>
+      <tr><th>#</th><th>היגד</th><th>סטטוס</th></tr>
+      ${personalBehaviorItems.map((item,i)=>{
+        const v = state.personalBehavior[i];
+        const pill = v === 'נכשל' ? '<span class="pillFail">נכשל</span>' :
+                     v === 'עבר'  ? '<span class="pillPass">עבר</span>' : esc(pfLabel(v));
+        return `<tr><td>${i+1}</td><td>${esc(item)}</td><td>${pill}</td></tr>`;
+      }).join('')}
+    </table>
+    <p><b>הערות:</b> ${esc(getVal('commentsA') || '—')}</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="cardHead headB">ב.1 אבחון — תהליך איתור הצרכים</div>
+  <div class="cardBody">
+    <table>
+      <tr><th>#</th><th>היגד</th><th>ציון</th></tr>
+      ${sectionB1Items.map((item,i)=>`<tr><td>${i+1}</td><td>${esc(item)}</td><td>${esc(scoreLabel(state.b1[i]))}</td></tr>`).join('')}
+    </table>
+    <p><b>ממוצע:</b> ${a1 === null ? '—' : a1.toFixed(1)} / 100</p>
+    ${getVal('comments_b1') ? `<p><b>הערות:</b> ${esc(getVal('comments_b1'))}</p>` : ''}
+  </div>
+</div>
+
+<div class="card">
+  <div class="cardHead headB">ב.2 תכנון הטיפול/פרויקט/התערבות וביצועו</div>
+  <div class="cardBody">
+    <table>
+      <tr><th>#</th><th>היגד</th><th>ציון</th></tr>
+      ${sectionB2Items.map((item,i)=>`<tr><td>${i+1}</td><td>${esc(item)}</td><td>${esc(scoreLabel(state.b2[i]))}</td></tr>`).join('')}
+    </table>
+    <p><b>ממוצע:</b> ${a2 === null ? '—' : a2.toFixed(1)} / 100</p>
+    ${getVal('comments_b2') ? `<p><b>הערות:</b> ${esc(getVal('comments_b2'))}</p>` : ''}
+  </div>
+</div>
+
+<div class="card">
+  <div class="cardHead headC">ג. כישורים כלליים בתקשורת</div>
+  <div class="cardBody">
+    <table>
+      <tr><th>#</th><th>היגד</th><th>ציון</th></tr>
+      ${sectionCItems.map((item,i)=>`<tr><td>${i+1}</td><td>${esc(item)}</td><td>${esc(scoreLabel(state.c[i]))}</td></tr>`).join('')}
+    </table>
+    <p><b>ממוצע:</b> ${a3 === null ? '—' : a3.toFixed(1)} / 100</p>
+    ${getVal('comments_c') ? `<p><b>הערות:</b> ${esc(getVal('comments_c'))}</p>` : ''}
+  </div>
+</div>
+
+<div class="card">
+  <div class="cardHead headD">ד. גיבוש האישיות המקצועית</div>
+  <div class="cardBody">
+    <table>
+      <tr><th>#</th><th>היגד</th><th>ציון</th></tr>
+      ${sectionDItems.map((item,i)=>`<tr><td>${i+1}</td><td>${esc(item)}</td><td>${esc(scoreLabel(state.d[i]))}</td></tr>`).join('')}
+    </table>
+    <p><b>ממוצע:</b> ${a4 === null ? '—' : a4.toFixed(1)} / 100</p>
+    ${getVal('comments_d') ? `<p><b>הערות:</b> ${esc(getVal('comments_d'))}</p>` : ''}
+  </div>
+</div>
+
+<div class="card">
+  <div class="cardHead headS">סיכום התרשמות</div>
+  <div class="cardBody">
+    <p>${esc(getVal('finalSummary') || '—')}</p>
+    <div class="finalBox">
+      <div class="small">ציון סופי</div>
+      <div class="finalScore">${finalAvg === null ? '—' : finalAvg.toFixed(1)}</div>
+      <div>${passing ? '✓ עבר' : '✗ נכשל'}</div>
+    </div>
+    <p><b>תאריך מילוי:</b> ${esc(getVal('evaluationDate') || '—')}</p>
+    <p><b>חתימה:</b> ${esc(getVal('signatureName') || '—')}</p>
+  </div>
+</div>
+
+</body>
+</html>`;
+
+  // MHT (MHTML) ל-AltChunk
+  const boundary = "----=_NextPart_000_0000_01D00000.00000000";
+  const htmlQP = html
+    .replace(/=/g, "=3D")
+    .replace(/\r?\n/g, "\r\n");
+
+  const mht =
+`MIME-Version: 1.0
+Content-Type: multipart/related; boundary="${boundary}"; type="text/html"
+
+--${boundary}
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+${htmlQP}
+--${boundary}--`;
+
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:body>
+    <w:altChunk r:id="rId1"/>
+    <w:sectPr>
+      <w:bidi/>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/>
+    </w:sectPr>
+  </w:body>
+</w:document>`;
+
+  const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/aFChunk"
+    Target="afchunk.mht"/>
+</Relationships>`;
+
+  const appRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+    Target="word/document.xml"/>
+</Relationships>`;
+
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="mht" ContentType="message/rfc822"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', contentTypesXml);
+  zip.file('_rels/.rels', appRelsXml);
+  zip.file('word/document.xml', documentXml);
+  zip.file('word/afchunk.mht', mht);
+  zip.file('word/_rels/document.xml.rels', relsXml);
+
+  return await zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  });
 }
 
 /**
  * =============================
- * Submit: download + upload + open folder
+ * SUBMIT: Validate -> Create DOCX -> Download
  * =============================
  */
 async function handleSubmitAuto() {
@@ -1499,38 +1400,23 @@ async function handleSubmitAuto() {
   const btn = document.getElementById('submitBtn');
   const orig = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> שולח...';
+  btn.innerHTML = '<span class="spinner"></span> יוצר קובץ...';
 
   try {
-    const blob = await generateDocx();
+    const blob = await generateStyledDocxFromHtml();
     const studentName = (document.getElementById('studentName')?.value || 'הערכה').trim();
     const dateStr = new Date().toLocaleDateString('he-IL').replace(/\//g, '-');
     const fileName = `הערכת_סטודנט_${studentName}_${dateStr}.docx`;
 
-    // 1) הורדה מקומית
     triggerDownload(blob, fileName);
-
-    // 2) העלאה לדרייב (אמיתי)
-    const uploaded = await uploadDocxToDrive(blob, fileName, DRIVE_FOLDER_ID);
-
-    // 3) פתיחה אוטומטית לתיקייה
-    openDriveFolder(DRIVE_FOLDER_ID);
-
-    showToast(`✅ הועלה ל-Drive בהצלחה!\nשם קובץ: ${uploaded?.name || fileName}`, 'success');
+    showToast(`✅ נשמר קובץ Word בהצלחה!\n${fileName}`, 'success');
   } catch (e) {
     console.error(e);
-    showToast('❌ שגיאה בשליחה:\n' + (e?.message || e), 'error');
+    showToast('❌ שגיאה ביצירת הקובץ:\n' + (e?.message || e), 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = orig;
   }
-}
-
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove('show'), 4500);
 }
 
 /**
@@ -1546,6 +1432,7 @@ function init() {
   renderScoreSection('b2Container', sectionB2Items, 'b2', '2. תכנון הטיפול/פרויקט/התערבות וביצועו', 'avg_b2', 'section-b');
   renderScoreSection('sectionCContent', sectionCItems, 'c', 'כישורים כלליים בתקשורת', 'avg_c', 'section-c');
   renderScoreSection('sectionDContent', sectionDItems, 'd', 'גיבוש האישיות המקצועית', 'avg_d', 'section-d');
+  updateAverages();
   updateProgress();
 }
 init();
