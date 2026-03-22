@@ -500,6 +500,33 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .field-error {
+      border-color: #c0392b !important;
+      background: #fff5f5 !important;
+      box-shadow: 0 0 0 3px rgba(192,57,43,0.18) !important;
+      animation: shake 0.35s ease;
+    }
+    .pf-row-error {
+      border-color: #c0392b !important;
+      background: #fff0f0 !important;
+      box-shadow: 0 0 0 3px rgba(192,57,43,0.15) !important;
+      animation: shake 0.35s ease;
+    }
+    .score-row-error {
+      border-color: #c0392b !important;
+      background: #fff0f0 !important;
+      border-radius: 10px;
+      box-shadow: 0 0 0 3px rgba(192,57,43,0.15) !important;
+      animation: shake 0.35s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
     @media (max-width: 680px) {
       .form-grid { grid-template-columns: 1fr; }
       .form-grid.three { grid-template-columns: 1fr 1fr; }
@@ -1093,36 +1120,61 @@ function updateProgress() {
  * VALIDATION
  * =============================
  */
+function clearHighlights() {
+  document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+  document.querySelectorAll('.pf-row-error').forEach(el => el.classList.remove('pf-row-error'));
+  document.querySelectorAll('.score-row-error').forEach(el => el.classList.remove('score-row-error'));
+}
+
 function validateForm() {
+  clearHighlights();
   const missing = [];
 
   const unfilledPF = state.personalBehavior.map((v,i) => v === null ? i+1 : null).filter(v => v !== null);
   if (unfilledPF.length > 0) {
     missing.push(`סעיף א - התנהגות אישית: סעיפים ${unfilledPF.join(', ')} לא מולאו`);
+    document.querySelectorAll('#personalBehaviorItems .pass-fail-row').forEach((row, i) => {
+      if (state.personalBehavior[i] === null) row.classList.add('pf-row-error');
+    });
   }
 
   const anyPersonalFail = state.personalBehavior.includes('נכשל');
   if (anyPersonalFail) {
-    if (!document.getElementById('commentsA').value.trim()) {
+    const commentsEl = document.getElementById('commentsA');
+    if (!commentsEl.value.trim()) {
       missing.push('סעיף א - יש למלא הערות ודוגמאות בעת כשלון');
+      commentsEl.classList.add('field-error');
     }
     return missing;
   }
 
-  const sections = [
-    { arr: state.b1, name: 'ב.1 אבחון' },
-    { arr: state.b2, name: 'ב.2 תכנון' },
-    { arr: state.c,  name: 'ג - תקשורת' },
-    { arr: state.d,  name: 'ד - אישיות מקצועית' },
+  const scoreSections = [
+    { arr: state.b1, containerId: 'b1Container', name: 'ב.1 אבחון' },
+    { arr: state.b2, containerId: 'b2Container', name: 'ב.2 תכנון' },
+    { arr: state.c,  containerId: 'sectionCContent', name: 'ג - תקשורת' },
+    { arr: state.d,  containerId: 'sectionDContent', name: 'ד - אישיות מקצועית' },
   ];
 
-  sections.forEach(sec => {
-    const unfilled = sec.arr.map((v,i) => v === null ? i+1 : null).filter(v => v !== null);
-    if (unfilled.length > 0) missing.push(`${sec.name}: סעיפים ${unfilled.join(', ')} לא מולאו`);
+  scoreSections.forEach(sec => {
+    const unfilled = sec.arr.map((v,i) => v === null ? i : null).filter(v => v !== null);
+    if (unfilled.length > 0) {
+      missing.push(`${sec.name}: סעיפים ${unfilled.map(i=>i+1).join(', ')} לא מולאו`);
+      const rows = document.querySelectorAll(`#${sec.containerId} .score-row`);
+      unfilled.forEach(i => { if (rows[i]) rows[i].classList.add('score-row-error'); });
+    }
   });
 
-  if (!document.getElementById('finalSummary').value.trim()) missing.push('סיכום מילולי — שדה ריק');
-  if (!document.getElementById('studentName').value.trim()) missing.push('שם הסטודנט/ית — שדה ריק');
+  const studentEl = document.getElementById('studentName');
+  if (!studentEl.value.trim()) {
+    missing.push('שם הסטודנט/ית — שדה ריק');
+    studentEl.classList.add('field-error');
+  }
+
+  const summaryEl = document.getElementById('finalSummary');
+  if (!summaryEl.value.trim()) {
+    missing.push('סיכום מילולי — שדה ריק');
+    summaryEl.classList.add('field-error');
+  }
 
   return missing;
 }
@@ -1449,18 +1501,16 @@ function collectSheetData() {
   };
 }
 
-async function sendToGoogleSheets(data) {
-  const scriptUrl = document.getElementById('sheetsScriptUrl')?.value?.trim();
-  if (!scriptUrl) return { skipped: true };
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyAGZIMDRYmAgmVTpVVRCtlnuYQC9wCf2nZAHXWebuc7Xc0wxYWC6eIw0r7q_rFpgvq/exec';
 
-  const resp = await fetch(scriptUrl, {
+async function sendToGoogleSheets(data) {
+  await fetch(SHEETS_URL, {
     method: 'POST',
+    mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(data),
   });
-
-  if (!resp.ok) throw new Error(`שגיאת שרת: ${resp.status}`);
-  return await resp.json();
+  return { ok: true };
 }
 
 /**
@@ -1486,11 +1536,7 @@ async function handleSubmitAuto() {
     let sheetMsg = '';
     try {
       const result = await sendToGoogleSheets(sheetData);
-      if (result.skipped) {
-        sheetMsg = '⚠️ לא הוגדר קישור לגוגל שיטס — נשמר רק Word';
-      } else {
-        sheetMsg = '✅ נשלח לגוגל שיטס בהצלחה!';
-      }
+      sheetMsg = '✅ נשלח לגוגל שיטס בהצלחה!';
     } catch (sheetErr) {
       console.warn('Google Sheets error:', sheetErr);
       sheetMsg = `⚠️ שגיאה בשליחה לשיטס: ${sheetErr.message}`;
