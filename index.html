@@ -820,51 +820,7 @@
     </div>
   </div>
 
-  <!-- Google Sheets Config -->
-  <div class="card" id="cardSheets">
-    <div class="card-header" style="background: #145a32;">
-      <div class="card-header-num" style="font-size:18px;">📊</div>
-      <div>
-        <div class="card-header-title">חיבור לגוגל שיטס (אופציונלי)</div>
-        <div class="card-header-subtitle">הזינו את ה-URL של Apps Script לשליחה אוטומטית לגיליון</div>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="info-box" style="border-color:#a8d5b8; background:#f0faf4; color:#145a32;">
-        <strong>📋 הוראות חיבור לגוגל שיטס:</strong><br>
-        <strong>1.</strong> פתחו גוגל שיטס חדש → Extensions → Apps Script<br>
-        <strong>2.</strong> הדביקו קוד → Deploy → New Deployment → Web App:<br>
-        <details style="margin-top:8px;">
-          <summary style="cursor:pointer; font-weight:700; color:#0d5c2e;">לחצו לראות קוד Apps Script ▼</summary>
-          <pre style="background:#1e3a2e; color:#7ee8a2; padding:12px; border-radius:8px; margin-top:8px; font-size:11px; overflow-x:auto; white-space:pre-wrap; direction:ltr; text-align:left;">function doPost(e) {
-  var data = JSON.parse(e.postData.contents);
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var headers = Object.keys(data);
-  var values = Object.values(data);
-  if (sheet.getLastRow() === 0) { sheet.appendRow(headers); }
-  sheet.appendRow(values);
-  return ContentService.createTextOutput(JSON.stringify({status:&apos;ok&apos;}))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({status:&apos;ready&apos;}))
-    .setMimeType(ContentService.MimeType.JSON);
-}</pre>
-        </details>
-        <strong>3.</strong> Who has access = <strong>Anyone</strong><br>
-        <strong>4.</strong> העתיקו את ה-Web App URL והדביקו כאן:
-      </div>
-      <div class="field" style="margin-top:12px;">
-        <label>🔗 Apps Script Web App URL</label>
-        <input type="url" id="sheetsScriptUrl" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbyAGZIMDRYmAgmVTpVVRCtlnuYQC9wCf2nZAHXWebuc7Xc0wxYWC6eIw0r7q_rFpgvq/exec" style="font-size:13px; direction:ltr; text-align:left;">
-      </div>
-      <div style="font-size:12px; color:var(--muted); margin-top:6px;">
-        💡 אם שדה זה ריק — הטופס יישמר כ-Word בלבד ללא שליחה לשיטס
-      </div>
-    </div>
-  </div>
-
-  <!-- Submit -->
+    <!-- Submit -->
   <div class="submit-area">
     <button class="submit-btn" id="submitBtn" onclick="handleSubmitAuto()">
       <span>✓</span>
