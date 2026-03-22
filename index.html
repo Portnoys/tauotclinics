@@ -518,7 +518,25 @@
     <div class="header-subtitle">ריפוי בעיסוק: טופס הערכה מקצועי</div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
   </div>
-  <div class="header-logo">TAU</div>
+  <div class="header-logo" style="background:none; border-radius:0; width:64px; height:64px;">
+    <svg width="64" height="64" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="sph2" cx="38%" cy="32%" r="62%">
+          <stop offset="0%" stop-color="#3a7fd4"/>
+          <stop offset="55%" stop-color="#0e3a80"/>
+          <stop offset="100%" stop-color="#040e28"/>
+        </radialGradient>
+        <radialGradient id="sp2" cx="36%" cy="30%" r="38%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <circle cx="55" cy="55" r="52" fill="url(#sph2)"/>
+      <circle cx="55" cy="55" r="52" fill="url(#sp2)"/>
+      <circle cx="55" cy="55" r="52" fill="none" stroke="#c8a830" stroke-width="2.5"/>
+      <text x="55" y="67" text-anchor="middle" font-family="Georgia, serif" font-size="36" font-weight="700" fill="#f5d060" letter-spacing="3">TAU</text>
+    </svg>
+  </div>
 </header>
 
 <div class="container">
@@ -802,11 +820,55 @@
     </div>
   </div>
 
+  <!-- Google Sheets Config -->
+  <div class="card" id="cardSheets">
+    <div class="card-header" style="background: #145a32;">
+      <div class="card-header-num" style="font-size:18px;">📊</div>
+      <div>
+        <div class="card-header-title">חיבור לגוגל שיטס (אופציונלי)</div>
+        <div class="card-header-subtitle">הזינו את ה-URL של Apps Script לשליחה אוטומטית לגיליון</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-box" style="border-color:#a8d5b8; background:#f0faf4; color:#145a32;">
+        <strong>📋 הוראות חיבור לגוגל שיטס:</strong><br>
+        <strong>1.</strong> פתחו גוגל שיטס חדש → Extensions → Apps Script<br>
+        <strong>2.</strong> הדביקו קוד → Deploy → New Deployment → Web App:<br>
+        <details style="margin-top:8px;">
+          <summary style="cursor:pointer; font-weight:700; color:#0d5c2e;">לחצו לראות קוד Apps Script ▼</summary>
+          <pre style="background:#1e3a2e; color:#7ee8a2; padding:12px; border-radius:8px; margin-top:8px; font-size:11px; overflow-x:auto; white-space:pre-wrap; direction:ltr; text-align:left;">function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var headers = Object.keys(data);
+  var values = Object.values(data);
+  if (sheet.getLastRow() === 0) { sheet.appendRow(headers); }
+  sheet.appendRow(values);
+  return ContentService.createTextOutput(JSON.stringify({status:&apos;ok&apos;}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({status:&apos;ready&apos;}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        </details>
+        <strong>3.</strong> Who has access = <strong>Anyone</strong><br>
+        <strong>4.</strong> העתיקו את ה-Web App URL והדביקו כאן:
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label>🔗 Apps Script Web App URL</label>
+        <input type="url" id="sheetsScriptUrl" placeholder="https://script.google.com/macros/s/..." style="font-size:13px; direction:ltr; text-align:left;">
+      </div>
+      <div style="font-size:12px; color:var(--muted); margin-top:6px;">
+        💡 אם שדה זה ריק — הטופס יישמר כ-Word בלבד ללא שליחה לשיטס
+      </div>
+    </div>
+  </div>
+
   <!-- Submit -->
   <div class="submit-area">
     <button class="submit-btn" id="submitBtn" onclick="handleSubmitAuto()">
       <span>✓</span>
-      אשרי ושמרי ל-Word
+      אשרי, שלחי לשיטס ושמרי ל-Word
     </button>
   </div>
 
@@ -1387,7 +1449,67 @@ ${htmlQP}
 
 /**
  * =============================
- * SUBMIT: Validate -> Create DOCX -> Download
+ * GOOGLE SHEETS SENDER
+ * =============================
+ */
+function collectSheetData() {
+  const getVal = id => (document.getElementById(id)?.value || '').trim();
+
+  // Personal behavior pass/fail summary
+  const pbSummary = state.personalBehavior.map((v, i) => `${i+1}:${v||'—'}`).join(', ');
+
+  // Score section averages
+  const avg = arr => {
+    const nums = arr.map(Number).filter(n => !isNaN(n) && n > 0);
+    return nums.length ? (nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(1) : '—';
+  };
+
+  const finalAvgEl = document.getElementById('finalScoreDisplay');
+  const finalScore = finalAvgEl ? finalAvgEl.textContent.trim() : '—';
+
+  return {
+    'תאריך שליחה': new Date().toLocaleString('he-IL'),
+    'שם הסטודנט/ית': getVal('studentName'),
+    'מקום ההכשרה': getVal('trainingPlace'),
+    'תחום ההכשרה': getVal('trainingField'),
+    'מעסיק': getVal('employer'),
+    'הכשרה בשנה': getVal('trainingYear'),
+    'שנה"ל': getVal('academicYear'),
+    'מתאריך': getVal('dateFrom'),
+    'עד תאריך': getVal('dateTo'),
+    'ימי העדרות': getVal('absenceDays'),
+    'שם המדריך/ה': getVal('supervisorName'),
+    'ותק בהדרכה': getVal('supervisorExperience'),
+    'תואר': getVal('supervisorDegree'),
+    'א. התנהגות אישית': pbSummary,
+    'ב.1 אבחון - ממוצע': avg(state.b1),
+    'ב.2 תכנון - ממוצע': avg(state.b2),
+    'ג. תקשורת - ממוצע': avg(state.c),
+    'ד. אישיות מקצועית - ממוצע': avg(state.d),
+    'ציון סופי': finalScore,
+    'סיכום מילולי': getVal('finalSummary'),
+    'תאריך הערכה': getVal('evaluationDate'),
+    'חתימת מדריך/ה': getVal('signatureName'),
+  };
+}
+
+async function sendToGoogleSheets(data) {
+  const scriptUrl = document.getElementById('sheetsScriptUrl')?.value?.trim();
+  if (!scriptUrl) return { skipped: true };
+
+  const resp = await fetch(scriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(data),
+  });
+
+  if (!resp.ok) throw new Error(`שגיאת שרת: ${resp.status}`);
+  return await resp.json();
+}
+
+/**
+ * =============================
+ * SUBMIT: Validate -> Google Sheets + Create DOCX -> Download
  * =============================
  */
 async function handleSubmitAuto() {
@@ -1400,19 +1522,36 @@ async function handleSubmitAuto() {
   const btn = document.getElementById('submitBtn');
   const orig = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> יוצר קובץ...';
 
   try {
+    // Step 1: Send to Google Sheets
+    btn.innerHTML = '<span class="spinner"></span> שולח לגוגל שיטס...';
+    const sheetData = collectSheetData();
+    let sheetMsg = '';
+    try {
+      const result = await sendToGoogleSheets(sheetData);
+      if (result.skipped) {
+        sheetMsg = '⚠️ לא הוגדר קישור לגוגל שיטס — נשמר רק Word';
+      } else {
+        sheetMsg = '✅ נשלח לגוגל שיטס בהצלחה!';
+      }
+    } catch (sheetErr) {
+      console.warn('Google Sheets error:', sheetErr);
+      sheetMsg = `⚠️ שגיאה בשליחה לשיטס: ${sheetErr.message}`;
+    }
+
+    // Step 2: Generate and download Word
+    btn.innerHTML = '<span class="spinner"></span> יוצר קובץ Word...';
     const blob = await generateStyledDocxFromHtml();
     const studentName = (document.getElementById('studentName')?.value || 'הערכה').trim();
     const dateStr = new Date().toLocaleDateString('he-IL').replace(/\//g, '-');
     const fileName = `הערכת_סטודנט_${studentName}_${dateStr}.docx`;
-
     triggerDownload(blob, fileName);
-    showToast(`✅ נשמר קובץ Word בהצלחה!\n${fileName}`, 'success');
+
+    showToast(`${sheetMsg}\n📄 נשמר קובץ Word: ${fileName}`, 'success');
   } catch (e) {
     console.error(e);
-    showToast('❌ שגיאה ביצירת הקובץ:\n' + (e?.message || e), 'error');
+    showToast('❌ שגיאה:\n' + (e?.message || e), 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = orig;
